@@ -74,6 +74,7 @@ func (f *VintedProvider) GetItems() ([]Item, error) {
 
 func (f *VintedProvider) getItems(query url.URL) ([]Item, error) {
 	url := getApiUrl(&query)
+	log.Printf("Fetching items from: %v", url)
 	resp, err := f.client.Get(url.String())
 	if err != nil {
 		return nil, err
@@ -129,7 +130,7 @@ type vintedItemPrice struct {
 }
 
 func (f *VintedProvider) authenticate(query *url.URL) error {
-	authURL := query
+	authURL := *query
 	authURL.Path = ""
 	authURL.RawQuery = ""
 	_, err := f.client.Head(authURL.String())
@@ -137,6 +138,7 @@ func (f *VintedProvider) authenticate(query *url.URL) error {
 }
 
 func getApiUrl(query *url.URL) *url.URL {
-	query.Path = "/api/v2/catalog/items"
-	return query
+	apiURL := *query
+	apiURL.Path = "/api/v2/catalog/items"
+	return &apiURL
 }
