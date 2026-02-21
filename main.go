@@ -21,6 +21,7 @@ func main() {
 		if err != nil {
 			log.Println("Error", err)
 		}
+		w.Header().Set("Content-Type", "application/rss+xml")
 		w.WriteHeader(200)
 		w.Write(data)
 	}
