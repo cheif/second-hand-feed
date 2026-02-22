@@ -8,4 +8,4 @@ FROM alpine:latest
 COPY --from=builder /go/bin/second-hand-rss /go/bin/second-hand-rss
 EXPOSE 8080
 VOLUME /config
-CMD ["/bin/sh", "-c", "/go/bin/second-hand-rss /config/"]
+CMD ["/bin/sh", "-c", "/go/bin/second-hand-rss /config/config.json"]
