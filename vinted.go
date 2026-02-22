@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -33,7 +34,7 @@ func NewVintedProvider(configPath string) *VintedProvider {
 func (f *VintedProvider) GetURLs() []url.URL {
 	data, err := os.ReadFile(f.configPath)
 	if err != nil {
-		log.Printf("Error reading config: %v", err)
+		slog.Error("Error when reading config", "error", err)
 		return nil
 	}
 	var config VintedConfig
@@ -42,7 +43,7 @@ func (f *VintedProvider) GetURLs() []url.URL {
 	for _, rawUrl := range config.Urls {
 		url, err := url.Parse(rawUrl)
 		if err != nil {
-			log.Printf("Error parsing url: %v err: %v", rawUrl, err)
+			slog.Error("Error parsing url", "url", rawUrl, "error", err)
 		} else {
 			urls = append(urls, *url)
 		}
@@ -64,7 +65,7 @@ func (f *VintedProvider) GetItems() ([]Item, error) {
 	for _, url := range urls {
 		queryItems, err := f.getItems(url)
 		if err != nil {
-			log.Printf("Error when getting items from URL: %v, err: %v", url, err)
+			slog.Error("Error when getting items", "url", url, "error", err)
 		} else {
 			items = append(items, queryItems...)
 		}
@@ -74,10 +75,13 @@ func (f *VintedProvider) GetItems() ([]Item, error) {
 
 func (f *VintedProvider) getItems(query url.URL) ([]Item, error) {
 	url := getApiUrl(&query)
-	log.Printf("Fetching items from: %v", url)
+	slog.Info("Fetching vinted items", "url", url)
 	resp, err := f.client.Get(url.String())
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Unexpected status code: %v", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
