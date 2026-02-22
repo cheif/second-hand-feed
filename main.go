@@ -12,6 +12,7 @@ func main() {
 		configPath,
 		[]ItemProvider{
 			NewVintedProvider(),
+			NewBlocketProvider(),
 		},
 	)
 
