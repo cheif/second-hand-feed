@@ -8,52 +8,27 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"time"
 )
 
 type VintedProvider struct {
-	client     http.Client
-	configPath string
+	client http.Client
 }
 
-type VintedConfig struct {
-	Urls []string `json:"urls"`
+func (f *VintedProvider) Name() string {
+	return "vinted"
 }
 
-func NewVintedProvider(configPath string) *VintedProvider {
+func NewVintedProvider() *VintedProvider {
 	client := http.Client{}
 	jar, _ := cookiejar.New(nil)
 	client.Jar = jar
 	return &VintedProvider{
-		client:     client,
-		configPath: configPath,
+		client: client,
 	}
 }
 
-func (f *VintedProvider) GetURLs() []url.URL {
-	data, err := os.ReadFile(f.configPath)
-	if err != nil {
-		slog.Error("Error when reading config", "error", err)
-		return nil
-	}
-	var config VintedConfig
-	err = json.Unmarshal(data, &config)
-	var urls []url.URL
-	for _, rawUrl := range config.Urls {
-		url, err := url.Parse(rawUrl)
-		if err != nil {
-			slog.Error("Error parsing url", "url", rawUrl, "error", err)
-		} else {
-			urls = append(urls, *url)
-		}
-
-	}
-	return urls
-}
-
-func (f *VintedProvider) GetItems() ([]Item, error) {
-	urls := f.GetURLs()
+func (f *VintedProvider) GetItems(urls []url.URL) ([]Item, error) {
 	if len(urls) == 0 {
 		return nil, nil
 	}

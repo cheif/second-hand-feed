@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
+	"log/slog"
+	"net/url"
+	"os"
 	"time"
 )
 
@@ -21,17 +25,69 @@ type ItemPrice struct {
 }
 
 type ItemProvider interface {
-	GetItems() ([]Item, error)
+	Name() string
+	GetItems(urls []url.URL) ([]Item, error)
 }
 
 type FeedGenerator struct {
-	Providers []ItemProvider
+	configPath string
+	Providers  []ItemProvider
+}
+
+func NewFeedGenerator(configPath string, providers []ItemProvider) *FeedGenerator {
+	return &FeedGenerator{
+		configPath: configPath,
+		Providers:  providers,
+	}
+}
+
+type feedConfig struct {
+	Queries []feedQuery `json:"queries"`
+}
+
+type feedQuery struct {
+	Query    string `json:"query"`
+	Provider string `json:"provider"`
+}
+
+func (f *FeedGenerator) getConfig() (*feedConfig, error) {
+	data, err := os.ReadFile(f.configPath)
+	if err != nil {
+		slog.Error("Error when reading config", "error", err)
+		return nil, err
+	}
+	var config feedConfig
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
+	var urls []url.URL
+	for _, query := range c.Queries {
+		if query.Provider == provider.Name() {
+			url, err := url.Parse(query.Query)
+			if err != nil {
+				slog.Error("Error parsing Query", "query", query.Query, "error", err)
+			} else {
+				urls = append(urls, *url)
+			}
+		}
+	}
+	return urls
 }
 
 func (f *FeedGenerator) GetFeed() ([]byte, error) {
+	config, err := f.getConfig()
+	if err != nil {
+		return nil, err
+	}
 	var items []Item
 	for _, provider := range f.Providers {
-		providerItems, err := provider.GetItems()
+		urls := config.getURLS(provider)
+		providerItems, err := provider.GetItems(urls)
 		if err != nil {
 			log.Printf("Error when fetching items: %v", err)
 		} else {
