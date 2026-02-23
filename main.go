@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -19,7 +18,8 @@ func main() {
 		},
 	)
 
-	rssHandler := func(w http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("GET /atom.xml", func(w http.ResponseWriter, req *http.Request) {
+		logRequest(req)
 		dump, err := httputil.DumpRequest(req, false)
 		if err != nil {
 			slog.Error("Error dumping request", "error", err)
@@ -34,44 +34,30 @@ func main() {
 		}
 		baseURL.Host = req.Host
 
-		if req.URL.Path != "/" {
-			w.WriteHeader(404)
-			return
+		data, err := generator.GetFeed(baseURL)
+		if err != nil {
+			slog.Error("Error when generating feed", "error", err)
 		}
+		w.Header().Set("Content-Type", "application/atom+xml")
+		w.WriteHeader(200)
+		w.Write(data)
+	})
 
-		accept := req.Header.Get("Accept")
-		shouldServeFeed := strings.Contains(accept, "application/atom+xml") || (strings.Contains(accept, "*/*") && !strings.Contains(accept, "text/html"))
-
-		if shouldServeFeed {
-			// Should be able to handle our feed
-			data, err := generator.GetFeed(baseURL)
-			if err != nil {
-				slog.Error("Error when generating feed", "error", err)
-			}
-			w.Header().Set("Content-Type", "application/atom+xml")
-			w.WriteHeader(200)
-			w.Write(data)
-		} else {
-			// Serve HTML
-			tmpl, err := template.ParseFiles("templates/index.html")
-			if err != nil {
-				slog.Error("Error when parsing template", "error", err)
-			}
-			queries, err := generator.GetQueries()
-			if err != nil {
-				slog.Error("Error when fetching queries", "error", err)
-			}
-			tmpl.Execute(w, queries)
+	http.HandleFunc("GET /", func(w http.ResponseWriter, req *http.Request) {
+		tmpl, err := template.ParseFiles("templates/index.html")
+		if err != nil {
+			slog.Error("Error when parsing template", "error", err)
 		}
-	}
+		queries, err := generator.GetQueries()
+		if err != nil {
+			slog.Error("Error when fetching queries", "error", err)
+		}
+		tmpl.Execute(w, queries)
+		logRequest(req)
+	})
 
 	http.HandleFunc("POST /queries/add", func(w http.ResponseWriter, req *http.Request) {
-		dump, err := httputil.DumpRequest(req, false)
-		if err != nil {
-			slog.Error("Error dumping request", "error", err)
-		} else {
-			slog.Info("Got request", "request", dump)
-		}
+		logRequest(req)
 		_ = req.ParseForm()
 		query := req.Form.Get("query")
 		slog.Info(query)
@@ -89,6 +75,14 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/", rssHandler)
 	http.ListenAndServe(":8080", nil)
+}
+
+func logRequest(req *http.Request) {
+	dump, err := httputil.DumpRequest(req, false)
+	if err != nil {
+		slog.Error("Error dumping request", "error", err)
+	} else {
+		slog.Info("Got request", "request", dump)
+	}
 }
