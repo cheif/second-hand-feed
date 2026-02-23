@@ -63,7 +63,7 @@ func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
 		items = append(items, Item{
 			URL:       doc.URL,
 			Title:     doc.Heading,
-			Timestamp: time.Unix(int64(doc.Timestamp), 0),
+			Timestamp: time.UnixMilli(int64(doc.Timestamp)),
 			ImageURL:  doc.Image.URL,
 			Price: ItemPrice{
 				Amount:       strconv.Itoa(doc.Price.Amount),
