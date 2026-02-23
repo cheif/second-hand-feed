@@ -25,11 +25,17 @@ func main() {
 			slog.Info("Got request", "request", dump)
 		}
 
-		data, err := generator.GetFeed()
+		baseURL := *req.URL
+		proto := req.Header.Get("x-Forwarded-Proto")
+		if proto == "" {
+			proto = "http"
+		}
+		baseURL.Host = req.Host
+		data, err := generator.GetFeed(baseURL)
 		if err != nil {
 			slog.Error("Error when generating feed", "error", err)
 		}
-		w.Header().Set("Content-Type", "application/rss+xml")
+		w.Header().Set("Content-Type", "application/atom+xml")
 		w.WriteHeader(200)
 		w.Write(data)
 	}

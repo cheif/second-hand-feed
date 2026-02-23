@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"html"
 	"log"
 	"log/slog"
 	"net/url"
@@ -79,7 +80,7 @@ func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
 	return urls
 }
 
-func (f *FeedGenerator) GetFeed() ([]byte, error) {
+func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 	config, err := f.getConfig()
 	if err != nil {
 		return nil, err
@@ -95,31 +96,42 @@ func (f *FeedGenerator) GetFeed() ([]byte, error) {
 		}
 	}
 
-	var rssItems []RSSItem
+	var entries []atomEntry
+	var lastUpdate time.Time
 	for _, item := range items {
-		rssItems = append(rssItems, RSSItem{
-			Link:  item.URL,
-			Guid:  item.URL,
+		if item.Timestamp.After(lastUpdate) {
+			lastUpdate = item.Timestamp
+		}
+		entries = append(entries, atomEntry{
+			Id:    item.URL,
 			Title: item.Title,
-			Description: RSSDescription{
-				Description: fmt.Sprintf("%v %v", item.Price.Amount, item.Price.CurrencyCode),
-				CData:       fmt.Sprintf(`<img src="%v" />`, item.ImageURL),
+			Author: atomPerson{
+				"Second hand feed",
 			},
-			PubDate: item.Timestamp.Format(time.RFC1123),
+			Link: atomLink{
+				Href: item.URL,
+			},
+			Updated: item.Timestamp,
+			Summary: atomText{
+				Type:    "html",
+				Content: html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" />`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL)),
+			},
 		})
 	}
 
-	rss := rss{
-		Version: "2.0",
-		Channel: channel{
-			Title:       "Second hand rss",
-			Link:        "",
-			Description: "",
-			Items:       rssItems,
+	// TODO: Use url as id
+	feed := atomFeed{
+		Namespace: "http://www.w3.org/2005/Atom",
+		Id:        baseURL.String(),
+		Link: atomLink{
+			Href: baseURL.String(),
 		},
+		Title:   "Second hand",
+		Updated: lastUpdate,
+		Entry:   entries,
 	}
 
-	bytes, err := xml.MarshalIndent(rss, "", "  ")
+	bytes, err := xml.MarshalIndent(feed, "", "  ")
 	if err != nil {
 		return nil, err
 	}
@@ -127,33 +139,35 @@ func (f *FeedGenerator) GetFeed() ([]byte, error) {
 	return bytes, nil
 }
 
-type rss struct {
-	Version string  `xml:"version,attr"`
-	Channel channel `xml:"channel"`
+type atomFeed struct {
+	XMLName   xml.Name    `xml:"feed"`
+	AtomRel   string      `xml:"atom:link,attr"`
+	Namespace string      `xml:"xmlns,attr"`
+	Id        string      `xml:"id"`
+	Link      atomLink    `xml:"link"`
+	Title     string      `xml:"title"`
+	Updated   time.Time   `xml:"updated"`
+	Entry     []atomEntry `xml:"entry"`
 }
 
-type channel struct {
-	Title       string    `xml:"title"`
-	Link        string    `xml:"link"`
-	Description string    `xml:"description"`
-	Items       []RSSItem `xml:"item"`
+type atomEntry struct {
+	Id      string     `xml:"id"`
+	Title   string     `xml:"title"`
+	Updated time.Time  `xml:"updated"`
+	Author  atomPerson `xml:"author"`
+	Link    atomLink   `xml:"link"`
+	Summary atomText   `xml:"summary"`
 }
 
-type RSSItem struct {
-	Link        string         `xml:"link"`
-	Guid        string         `xml:"guid"`
-	Title       string         `xml:"title"`
-	Description RSSDescription `xml:"description"`
-	PubDate     string         `xml:"pubDate"`
-	Enclosure   RSSEnclosure   `xml:"enclosure"`
+type atomPerson struct {
+	Name string `xml:"name"`
 }
 
-type RSSDescription struct {
-	XMLName     xml.Name `xml:"description"`
-	Description string   `xml:",innerxml"`
-	CData       string   `xml:",cdata"`
+type atomLink struct {
+	Href string `xml:"href,attr"`
 }
 
-type RSSEnclosure struct {
-	URL string `xml:"url,attr"`
+type atomText struct {
+	Type    string `xml:"type,attr"`
+	Content string `xml:",innerxml"`
 }
