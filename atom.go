@@ -132,38 +132,35 @@ func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var items []Item
+	var entries []atomEntry
+	var lastUpdate time.Time
 	for _, provider := range f.Providers {
 		urls := config.getURLS(provider)
 		providerItems, err := provider.GetItems(urls)
 		if err != nil {
 			log.Printf("Error when fetching items: %v", err)
 		} else {
-			items = append(items, providerItems...)
+			for _, item := range providerItems {
+				if item.Timestamp.After(lastUpdate) {
+					lastUpdate = item.Timestamp
+				}
+				entries = append(entries, atomEntry{
+					Id:    item.URL,
+					Title: item.Title,
+					Author: atomPerson{
+						provider.Name(),
+					},
+					Link: atomLink{
+						Href: item.URL,
+					},
+					Updated: item.Timestamp,
+					Summary: atomText{
+						Type:    "html",
+						Content: html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" />`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL)),
+					},
+				})
+			}
 		}
-	}
-
-	var entries []atomEntry
-	var lastUpdate time.Time
-	for _, item := range items {
-		if item.Timestamp.After(lastUpdate) {
-			lastUpdate = item.Timestamp
-		}
-		entries = append(entries, atomEntry{
-			Id:    item.URL,
-			Title: item.Title,
-			Author: atomPerson{
-				"Second hand feed",
-			},
-			Link: atomLink{
-				Href: item.URL,
-			},
-			Updated: item.Timestamp,
-			Summary: atomText{
-				Type:    "html",
-				Content: html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" />`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL)),
-			},
-		})
 	}
 
 	// TODO: Use url as id
@@ -182,7 +179,7 @@ func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("returning feed with %v items", len(items))
+	slog.Info("Returning atom feed", "entries", len(entries))
 	return bytes, nil
 }
 
