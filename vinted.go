@@ -11,47 +11,53 @@ import (
 	"time"
 )
 
-type VintedProvider struct {
-	client http.Client
-}
+type VintedProvider struct{}
 
 func (f *VintedProvider) Name() string {
 	return "vinted"
 }
 
 func NewVintedProvider() *VintedProvider {
-	client := http.Client{}
-	jar, _ := cookiejar.New(nil)
-	client.Jar = jar
-	return &VintedProvider{
-		client: client,
-	}
+	return &VintedProvider{}
 }
 
 func (f *VintedProvider) GetItems(urls []url.URL) ([]Item, error) {
 	if len(urls) == 0 {
 		return nil, nil
 	}
-	err := f.authenticate(&urls[0])
+	client, err := createAuthenticatedClient(&urls[0])
 	if err != nil {
 		return nil, err
 	}
-	var items []Item
+	var vintedItems []vintedItemResponse
 	for _, url := range urls {
-		queryItems, err := f.getItems(url)
+		queryItems, err := getItems(client, url)
 		if err != nil {
 			slog.Error("Error when getting items", "url", url, "error", err)
 		} else {
-			items = append(items, queryItems...)
+			vintedItems = append(vintedItems, queryItems...)
 		}
+	}
+	var items []Item
+	for _, item := range vintedItems {
+		items = append(items, Item{
+			URL:       item.URL,
+			Title:     item.Title,
+			Timestamp: time.Unix(int64(item.Photo.HighResolution.Timestamp), 0),
+			ImageURL:  item.Photo.FullSizeURL,
+			Price: ItemPrice{
+				Amount:       item.TotalItemPrice.Amount,
+				CurrencyCode: item.TotalItemPrice.CurrencyCode,
+			},
+		})
 	}
 	return items, nil
 }
 
-func (f *VintedProvider) getItems(query url.URL) ([]Item, error) {
+func getItems(client *http.Client, query url.URL) ([]vintedItemResponse, error) {
 	url := getApiUrl(&query)
 	slog.Info("Fetching vinted items", "url", url)
-	resp, err := f.client.Get(url.String())
+	resp, err := client.Get(url.String())
 	if err != nil {
 		return nil, err
 	}
@@ -67,20 +73,7 @@ func (f *VintedProvider) getItems(query url.URL) ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	var items []Item
-	for _, item := range response.Items {
-		items = append(items, Item{
-			URL:       item.URL,
-			Title:     item.Title,
-			Timestamp: time.Unix(int64(item.Photo.HighResolution.Timestamp), 0),
-			ImageURL:  item.Photo.FullSizeURL,
-			Price: ItemPrice{
-				Amount:       item.TotalItemPrice.Amount,
-				CurrencyCode: item.TotalItemPrice.CurrencyCode,
-			},
-		})
-	}
-	return items, nil
+	return response.Items, nil
 }
 
 type vintedItemsResponse struct {
@@ -108,12 +101,19 @@ type vintedItemPrice struct {
 	CurrencyCode string `json:"currency_code"`
 }
 
-func (f *VintedProvider) authenticate(query *url.URL) error {
+func createAuthenticatedClient(query *url.URL) (*http.Client, error) {
+	client := http.Client{}
+	jar, _ := cookiejar.New(nil)
+	client.Jar = jar
+
 	authURL := *query
 	authURL.Path = ""
 	authURL.RawQuery = ""
-	_, err := f.client.Head(authURL.String())
-	return err
+	_, err := client.Head(authURL.String())
+	if err != nil {
+		return nil, err
+	}
+	return &client, nil
 }
 
 func getApiUrl(query *url.URL) *url.URL {
