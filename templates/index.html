@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/missing.css@1.1.3">
+    </head>
+    <body>
+        <header>
+            <h1>Hello</h1>
+        </header>
+        <table>
+            <thead>
+                <th>Provider</th>
+                <th>Query</th>
+            </thead>
+            <tbody>
+            {{range . }}
+            <tr>
+                <th>{{.Provider}}</td>
+                <td><a href="{{.Query}}">{{.Query}}</a></td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+        <form action="queries/add" method="POST" class="flex-row">
+            <div>
+                <label for=search>Search</label>
+                <input id=search type=search name=query placeholder="Add Query" />
+            </div>
+            <strong>
+                <button type=search>Add query</button>
+            </strong>
+        </form>
+    </body>
+</html>
