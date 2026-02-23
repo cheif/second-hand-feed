@@ -28,6 +28,7 @@ type ItemPrice struct {
 type ItemProvider interface {
 	Name() string
 	GetItems(urls []url.URL) ([]Item, error)
+	CanHandle(query url.URL) bool
 }
 
 type FeedGenerator struct {
@@ -43,10 +44,10 @@ func NewFeedGenerator(configPath string, providers []ItemProvider) *FeedGenerato
 }
 
 type feedConfig struct {
-	Queries []feedQuery `json:"queries"`
+	Queries []FeedQuery `json:"queries"`
 }
 
-type feedQuery struct {
+type FeedQuery struct {
 	Query    string `json:"query"`
 	Provider string `json:"provider"`
 }
@@ -65,6 +66,18 @@ func (f *FeedGenerator) getConfig() (*feedConfig, error) {
 	return &config, nil
 }
 
+func (f *FeedGenerator) writeConfig(config feedConfig) error {
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(f.configPath, data, 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
 	var urls []url.URL
 	for _, query := range c.Queries {
@@ -78,6 +91,40 @@ func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
 		}
 	}
 	return urls
+}
+
+func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
+	config, err := f.getConfig()
+	if err != nil {
+		return nil, err
+	}
+	return config.Queries, nil
+}
+
+func (f *FeedGenerator) AddQuery(query string) error {
+	config, err := f.getConfig()
+	if err != nil {
+		return err
+	}
+	url, err := url.Parse(query)
+	if err != nil {
+		return err
+	}
+	for _, provider := range f.Providers {
+		if provider.CanHandle(*url) {
+			config.Queries = append(config.Queries, FeedQuery{
+				Query:    query,
+				Provider: provider.Name(),
+			})
+			err = f.writeConfig(*config)
+			if err != nil {
+				return err
+			} else {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("No provider can handle: %v", query)
 }
 
 func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {

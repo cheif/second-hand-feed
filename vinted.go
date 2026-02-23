@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,17 @@ func (f *VintedProvider) Name() string {
 
 func NewVintedProvider() *VintedProvider {
 	return &VintedProvider{}
+}
+
+func (f *VintedProvider) CanHandle(query url.URL) bool {
+	if !strings.Contains(query.Host, "vinted") {
+		return false
+	}
+	_, err := f.GetItems([]url.URL{query})
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (f *VintedProvider) GetItems(urls []url.URL) ([]Item, error) {

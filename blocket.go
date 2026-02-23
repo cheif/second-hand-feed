@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -23,6 +24,18 @@ func NewBlocketProvider() *BlocketProvider {
 
 func (b *BlocketProvider) Name() string {
 	return "blocket"
+}
+
+func (b *BlocketProvider) CanHandle(query url.URL) bool {
+	fmt.Println(query.Host)
+	if !strings.Contains(query.Host, "blocket") {
+		return false
+	}
+	_, err := b.GetItems([]url.URL{query})
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (b *BlocketProvider) GetItems(urls []url.URL) ([]Item, error) {
