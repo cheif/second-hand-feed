@@ -26,11 +26,16 @@ func (b *BlocketProvider) Name() string {
 }
 
 func (b *BlocketProvider) GetItems(urls []url.URL) ([]Item, error) {
-	url, err := url.Parse("https://www.blocket.se/recommerce/forsale/search?location=0.300022&q=skivstång")
-	if err != nil {
-		return nil, err
+	var items []Item
+	for _, url := range urls {
+		queryItems, err := b.getItems(url)
+		if err != nil {
+			slog.Error("Error when fetching items for url", "url", url)
+		} else {
+			items = append(items, queryItems...)
+		}
 	}
-	return b.getItems(*url)
+	return items, nil
 }
 
 func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
