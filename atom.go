@@ -188,7 +188,6 @@ func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 
 type atomFeed struct {
 	XMLName   xml.Name    `xml:"feed"`
-	AtomRel   string      `xml:"atom:link,attr"`
 	Namespace string      `xml:"xmlns,attr"`
 	Id        string      `xml:"id"`
 	Link      atomLink    `xml:"link"`
