@@ -84,7 +84,7 @@ func main() {
 				w.WriteHeader(400)
 			} else {
 				w.Header().Set("Location", "/")
-				w.WriteHeader(201)
+				w.WriteHeader(303)
 			}
 		}
 	})
