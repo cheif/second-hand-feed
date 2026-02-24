@@ -65,13 +65,12 @@ func main() {
 		if query == "" {
 			w.WriteHeader(400)
 		} else {
-			err := generator.AddQuery(query)
+			queries, err := generator.AddQuery(query)
 			if err != nil {
 				slog.Error("Error creating query", "error", err)
 				w.WriteHeader(400)
 			} else {
-				w.Header().Set("Location", "/")
-				w.WriteHeader(303)
+				tmpl.Execute(w, queries)
 			}
 		}
 	})
@@ -80,15 +79,11 @@ func main() {
 		logRequest(req)
 
 		id := req.PathValue("id")
-		err := generator.DeleteQuery(id)
+		queries, err := generator.DeleteQuery(id)
 		if err != nil {
 			slog.Error("Error deleting query", "error", err)
 			w.WriteHeader(400)
 		} else {
-			queries, err := generator.GetQueries()
-			if err != nil {
-				slog.Error("Error when fetching queries", "error", err)
-			}
 			tmpl.Execute(w, queries)
 		}
 	})

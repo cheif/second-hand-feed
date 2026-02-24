@@ -6,7 +6,7 @@
     </head>
     <body>
         <header class="navbar">
-            <h1>Hello</h1>
+            <h1>Second hand - feed generator</h1>
         </header>
         <main>
             <table>
@@ -28,11 +28,11 @@
                     {{end}}
                 </tbody>
             </table>
-            <form action="/queries/add" method="POST">
+            <form hx-post="/queries/add" hx-target="body">
                 <label for=search>Add</label>
-                <input id=search type=search name=query placeholder="Add Query" />
+                <input id=search type=search name=query placeholder="Search" />
                 <strong>
-                    <button type=search>Add query</button>
+                    <button type=submit>Add query</button>
                 </strong>
             </form>
         </main>

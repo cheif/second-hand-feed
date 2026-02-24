@@ -107,28 +107,32 @@ func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
 	return config.Queries, nil
 }
 
-func (f *FeedGenerator) DeleteQuery(id string) error {
+func (f *FeedGenerator) DeleteQuery(id string) ([]FeedQuery, error) {
 	config, err := f.getConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i, query := range config.Queries {
 		if query.Id() == id {
 			config.Queries = append(config.Queries[:i], config.Queries[i+1:]...)
-			return f.writeConfig(*config)
+			err = f.writeConfig(*config)
+			if err != nil {
+				return nil, err
+			}
+			return f.GetQueries()
 		}
 	}
-	return nil
+	return f.GetQueries()
 }
 
-func (f *FeedGenerator) AddQuery(query string) error {
+func (f *FeedGenerator) AddQuery(query string) ([]FeedQuery, error) {
 	config, err := f.getConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	url, err := url.Parse(query)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, provider := range f.Providers {
 		if provider.CanHandle(*url) {
@@ -138,13 +142,13 @@ func (f *FeedGenerator) AddQuery(query string) error {
 			})
 			err = f.writeConfig(*config)
 			if err != nil {
-				return err
+				return nil, err
 			} else {
-				return nil
+				return f.GetQueries()
 			}
 		}
 	}
-	return fmt.Errorf("No provider can handle: %v", query)
+	return nil, fmt.Errorf("No provider can handle: %v", query)
 }
 
 func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
