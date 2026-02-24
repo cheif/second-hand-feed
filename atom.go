@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -52,6 +53,11 @@ type FeedQuery struct {
 	Provider string `json:"provider"`
 }
 
+func (q FeedQuery) Id() string {
+	sum := sha256.Sum256([]byte(q.Query))
+	return fmt.Sprintf("%x", sum)
+}
+
 func (f *FeedGenerator) getConfig() (*feedConfig, error) {
 	data, err := os.ReadFile(f.configPath)
 	if err != nil {
@@ -99,6 +105,20 @@ func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
 		return nil, err
 	}
 	return config.Queries, nil
+}
+
+func (f *FeedGenerator) DeleteQuery(id string) error {
+	config, err := f.getConfig()
+	if err != nil {
+		return err
+	}
+	for i, query := range config.Queries {
+		if query.Id() == id {
+			config.Queries = append(config.Queries[:i], config.Queries[i+1:]...)
+			return f.writeConfig(*config)
+		}
+	}
+	return nil
 }
 
 func (f *FeedGenerator) AddQuery(query string) error {

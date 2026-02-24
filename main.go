@@ -43,24 +43,25 @@ func main() {
 		w.Write(data)
 	})
 
+	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		slog.Error("Error when parsing template", "error", err)
+	}
+
 	http.HandleFunc("GET /", func(w http.ResponseWriter, req *http.Request) {
-		tmpl, err := template.ParseFiles("templates/index.html")
-		if err != nil {
-			slog.Error("Error when parsing template", "error", err)
-		}
+		logRequest(req)
 		queries, err := generator.GetQueries()
 		if err != nil {
 			slog.Error("Error when fetching queries", "error", err)
 		}
 		tmpl.Execute(w, queries)
-		logRequest(req)
 	})
 
 	http.HandleFunc("POST /queries/add", func(w http.ResponseWriter, req *http.Request) {
 		logRequest(req)
+
 		_ = req.ParseForm()
 		query := req.Form.Get("query")
-		slog.Info(query)
 		if query == "" {
 			w.WriteHeader(400)
 		} else {
@@ -72,6 +73,23 @@ func main() {
 				w.Header().Set("Location", "/")
 				w.WriteHeader(303)
 			}
+		}
+	})
+
+	http.HandleFunc("DELETE /queries/{id}", func(w http.ResponseWriter, req *http.Request) {
+		logRequest(req)
+
+		id := req.PathValue("id")
+		err := generator.DeleteQuery(id)
+		if err != nil {
+			slog.Error("Error deleting query", "error", err)
+			w.WriteHeader(400)
+		} else {
+			queries, err := generator.GetQueries()
+			if err != nil {
+				slog.Error("Error when fetching queries", "error", err)
+			}
+			tmpl.Execute(w, queries)
 		}
 	})
 
