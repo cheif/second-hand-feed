@@ -29,7 +29,7 @@ type ItemPrice struct {
 type ItemProvider interface {
 	Name() string
 	GetItems(urls []url.URL) ([]Item, error)
-	CanHandle(query url.URL) bool
+	CanHandle(query url.URL) *FeedQuery
 }
 
 type FeedGenerator struct {
@@ -49,6 +49,7 @@ type feedConfig struct {
 }
 
 type FeedQuery struct {
+	Title    string `json:"title"`
 	Query    string `json:"query"`
 	Provider string `json:"provider"`
 }
@@ -104,6 +105,12 @@ func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
 	if err != nil {
 		return nil, err
 	}
+	for i, query := range config.Queries {
+		if query.Title == "" {
+			query.Title = query.Query[:50]
+			config.Queries[i] = query
+		}
+	}
 	return config.Queries, nil
 }
 
@@ -135,11 +142,9 @@ func (f *FeedGenerator) AddQuery(query string) ([]FeedQuery, error) {
 		return nil, err
 	}
 	for _, provider := range f.Providers {
-		if provider.CanHandle(*url) {
-			config.Queries = append(config.Queries, FeedQuery{
-				Query:    query,
-				Provider: provider.Name(),
-			})
+		feedQuery := provider.CanHandle(*url)
+		if feedQuery != nil {
+			config.Queries = append(config.Queries, *feedQuery)
 			err = f.writeConfig(*config)
 			if err != nil {
 				return nil, err

@@ -12,15 +12,15 @@
             <table>
                 <caption>Queries</caption>
                 <thead>
-                    <th scope="col">Provider</th>
                     <th scope="col">Query</th>
+                    <th scope="col">Provider</th>
                     <th scope="col">Remove</th>
                 </thead>
                 <tbody>
                     {{range . }}
                     <tr>
-                        <th scope="row">{{.Provider}}</th>
-                        <td><a href="{{.Query}}">{{.Query}}</a></td>
+                        <th scope="row"><a href="{{.Query}}">{{.Title}}</a></th>
+                        <td>{{.Provider}}</td>
                         <td>
                             <button hx-delete="/queries/{{.Id}}" hx-target="body">Remove</button>
                         </td>

@@ -26,16 +26,20 @@ func (b *BlocketProvider) Name() string {
 	return "blocket"
 }
 
-func (b *BlocketProvider) CanHandle(query url.URL) bool {
+func (b *BlocketProvider) CanHandle(query url.URL) *FeedQuery {
 	fmt.Println(query.Host)
 	if !strings.Contains(query.Host, "blocket") {
-		return false
+		return nil
 	}
-	_, err := b.GetItems([]url.URL{query})
+	resp, err := b.fetch(query)
 	if err != nil {
-		return false
+		return nil
 	}
-	return true
+	return &FeedQuery{
+		Title:    resp.Metadata.Title,
+		Query:    query.String(),
+		Provider: b.Name(),
+	}
 }
 
 func (b *BlocketProvider) GetItems(urls []url.URL) ([]Item, error) {
@@ -52,6 +56,29 @@ func (b *BlocketProvider) GetItems(urls []url.URL) ([]Item, error) {
 }
 
 func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
+	response, err := b.fetch(query)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []Item
+	for _, doc := range response.Docs {
+		items = append(items, Item{
+			URL:       doc.URL,
+			Title:     doc.Heading,
+			Timestamp: time.UnixMilli(int64(doc.Timestamp)),
+			ImageURL:  doc.Image.URL,
+			Price: ItemPrice{
+				Amount:       strconv.Itoa(doc.Price.Amount),
+				CurrencyCode: doc.Price.CurrencyCode,
+			},
+		})
+	}
+
+	return items, nil
+}
+
+func (b *BlocketProvider) fetch(query url.URL) (*blocketResponse, error) {
 	url := getBlocketApiUrl(&query)
 	slog.Info("Fetching blocket items", "url", url)
 	req, err := http.NewRequest("GET", url.String(), nil)
@@ -75,26 +102,12 @@ func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var items []Item
-	for _, doc := range response.Docs {
-		items = append(items, Item{
-			URL:       doc.URL,
-			Title:     doc.Heading,
-			Timestamp: time.UnixMilli(int64(doc.Timestamp)),
-			ImageURL:  doc.Image.URL,
-			Price: ItemPrice{
-				Amount:       strconv.Itoa(doc.Price.Amount),
-				CurrencyCode: doc.Price.CurrencyCode,
-			},
-		})
-	}
-
-	return items, nil
+	return &response, nil
 }
 
 type blocketResponse struct {
-	Docs []blocketDoc `json:"docs"`
+	Docs     []blocketDoc    `json:"docs"`
+	Metadata blocketMetadata `json:"metadata"`
 }
 
 type blocketDoc struct {
@@ -112,6 +125,10 @@ type blocketDocImage struct {
 type blocketDocPrice struct {
 	Amount       int    `json:"amount"`
 	CurrencyCode string `json:"currency_code"`
+}
+
+type blocketMetadata struct {
+	Title string `json:"title"`
 }
 
 func getBlocketApiUrl(queryURL *url.URL) *url.URL {

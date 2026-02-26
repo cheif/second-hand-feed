@@ -22,15 +22,18 @@ func NewVintedProvider() *VintedProvider {
 	return &VintedProvider{}
 }
 
-func (f *VintedProvider) CanHandle(query url.URL) bool {
+func (f *VintedProvider) CanHandle(query url.URL) *FeedQuery {
 	if !strings.Contains(query.Host, "vinted") {
-		return false
+		return nil
 	}
 	_, err := f.GetItems([]url.URL{query})
 	if err != nil {
-		return false
+		return nil
 	}
-	return true
+	return &FeedQuery{
+		Query:    query.String(),
+		Provider: f.Name(),
+	}
 }
 
 func (f *VintedProvider) GetItems(urls []url.URL) ([]Item, error) {
