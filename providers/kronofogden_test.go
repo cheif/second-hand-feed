@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestFetchAndParse(t *testing.T) {
@@ -39,11 +40,15 @@ func TestFetchAndParse(t *testing.T) {
 	query.Add("inO", "1")
 	itemURL.RawQuery = query.Encode()
 
+	time, err := time.Parse(time.RFC3339, "2026-02-18T15:44:00Z")
+	if err != nil {
+		t.Error(err)
+	}
 	expected := Item{
-		URL:   itemURL.String(),
-		Title: "Grovdammsugare",
-		//Timestamp time.Time
-		ImageURL: "https://pic09.auction2000.online/aukpic/kfm/20260218_1544/111848_1_thumb.jpg?0644",
+		URL:       itemURL.String(),
+		Title:     "Grovdammsugare",
+		Timestamp: time,
+		ImageURL:  "https://pic09.auction2000.online/aukpic/kfm/20260218_1544/111848_1_thumb.jpg?0644",
 		Price: ItemPrice{
 			Amount:       "1200",
 			CurrencyCode: "SEK",

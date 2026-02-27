@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -91,10 +92,16 @@ func parseItemNode(node *html.Node, baseURL url.URL) (*Item, error) {
 				return nil, err
 			}
 		} else if hasClass(child, "obj_link") {
-			item.URL, err = parseURL(child, &baseURL)
+			itemURL, err := parseURL(child, &baseURL)
 			if err != nil {
 				return nil, err
 			}
+			item.URL = itemURL.String()
+			timestamp, err := parseTimestamp(itemURL)
+			if err != nil {
+				return nil, err
+			}
+			item.Timestamp = *timestamp
 		} else if hasClass(child, "obj_img") {
 			item.ImageURL, err = getAttr(child, "src")
 			if err != nil {
@@ -122,20 +129,35 @@ func parseTitle(node *html.Node) (string, error) {
 	return "", fmt.Errorf("No title found in node: %v", node)
 }
 
-func parseURL(node *html.Node, baseURL *url.URL) (string, error) {
+func parseURL(node *html.Node, baseURL *url.URL) (*url.URL, error) {
 	itemPath, err := getAttr(node, "href")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	parsed, err := url.Parse(itemPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	url := *baseURL
 	url.RawQuery = parsed.Query().Encode()
 	url.Path = path.Join(path.Dir(baseURL.Path), parsed.Path)
-	return url.String(), nil
+	return &url, nil
+}
+
+func parseTimestamp(url *url.URL) (*time.Time, error) {
+	// The URL should have a timestamp embedded in the `inA` query param
+	for key, param := range url.Query() {
+		if key == "inA" {
+			for _, value := range param {
+				parsed, err := time.Parse("20060102_1504", value)
+				if err == nil {
+					return &parsed, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("Could not parse timestamp from url: %v", url)
 }
 
 func parsePrice(node *html.Node) (*ItemPrice, error) {
