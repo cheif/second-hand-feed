@@ -17,6 +17,7 @@ func main() {
 		[]providers.ItemProvider{
 			providers.NewVintedProvider(),
 			providers.NewBlocketProvider(),
+			providers.NewKronofogdenProvider(),
 		},
 	)
 

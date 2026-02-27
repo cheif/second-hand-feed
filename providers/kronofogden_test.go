@@ -1,0 +1,77 @@
+package providers
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"testing"
+)
+
+func TestFetchAndParse(t *testing.T) {
+	server := createTestServer(t)
+	defer server.Close()
+	provider := KronofogdenProvider{
+		client: server.Client(),
+	}
+
+	testURL, _ := url.Parse(server.URL)
+	testURL.Path = "/auk/w.objectlist?inC=KFM&inA=WEB&inSite=Y"
+
+	items, err := provider.GetItems([]url.URL{*testURL})
+	if err != nil {
+		t.Error(err)
+	}
+	if len(items) != 7 {
+		t.Errorf("Incorrect number of items returned: %v", len(items))
+	}
+
+	itemURL := testURL
+	itemURL.Path = "/auk/w.object?inC=KFM&inA=20260218_1544&inO=1"
+	expected := Item{
+		URL:   itemURL.String(),
+		Title: "Grovdammsugare",
+		//Timestamp time.Time
+		ImageURL: "https://pic09.auction2000.online/aukpic/kfm/20260218_1544/111848_1_thumb.jpg?0644",
+		Price: ItemPrice{
+			Amount:       "1200",
+			CurrencyCode: "SEK",
+		},
+	}
+	if items[0] != expected {
+		t.Errorf("Unexpected first item: %v, expected: %v", items[0], expected)
+	}
+}
+
+func TestCanHandle(t *testing.T) {
+	server := createTestServer(t)
+	defer server.Close()
+	provider := KronofogdenProvider{
+		client: server.Client(),
+	}
+
+	testURL, _ := url.Parse(server.URL)
+	testURL.Path = "/auk/w.objectlist?inC=KFM&inA=WEB&inSite=Y"
+
+	query := provider.CanHandle(*testURL)
+
+	expected := FeedQuery{
+		Title:    "",
+		Query:    testURL.String(),
+		Provider: "kronofogden",
+	}
+	if *query != expected {
+		t.Errorf("Unexpected handle \nresponse: %v, \nexpected: %v", *query, expected)
+	}
+
+}
+
+func createTestServer(t *testing.T) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		data, err := os.ReadFile("testdata/kronofogden.html")
+		if err != nil {
+			t.Error(err)
+		}
+		w.Write(data)
+	}))
+}
