@@ -6,15 +6,17 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+
+	"github.com/cheif/second-hand-feed/providers"
 )
 
 func main() {
 	configPath := os.Args[1]
 	generator := NewFeedGenerator(
 		configPath,
-		[]ItemProvider{
-			NewVintedProvider(),
-			NewBlocketProvider(),
+		[]providers.ItemProvider{
+			providers.NewVintedProvider(),
+			providers.NewBlocketProvider(),
 		},
 	)
 

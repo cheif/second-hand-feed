@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -11,33 +10,16 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/cheif/second-hand-feed/providers"
 )
-
-type Item struct {
-	URL       string
-	Title     string
-	Timestamp time.Time
-	ImageURL  string
-	Price     ItemPrice
-}
-
-type ItemPrice struct {
-	Amount       string
-	CurrencyCode string
-}
-
-type ItemProvider interface {
-	Name() string
-	GetItems(urls []url.URL) ([]Item, error)
-	CanHandle(query url.URL) *FeedQuery
-}
 
 type FeedGenerator struct {
 	configPath string
-	Providers  []ItemProvider
+	Providers  []providers.ItemProvider
 }
 
-func NewFeedGenerator(configPath string, providers []ItemProvider) *FeedGenerator {
+func NewFeedGenerator(configPath string, providers []providers.ItemProvider) *FeedGenerator {
 	return &FeedGenerator{
 		configPath: configPath,
 		Providers:  providers,
@@ -45,18 +27,7 @@ func NewFeedGenerator(configPath string, providers []ItemProvider) *FeedGenerato
 }
 
 type feedConfig struct {
-	Queries []FeedQuery `json:"queries"`
-}
-
-type FeedQuery struct {
-	Title    string `json:"title"`
-	Query    string `json:"query"`
-	Provider string `json:"provider"`
-}
-
-func (q FeedQuery) Id() string {
-	sum := sha256.Sum256([]byte(q.Query))
-	return fmt.Sprintf("%x", sum)
+	Queries []providers.FeedQuery `json:"queries"`
 }
 
 func (f *FeedGenerator) getConfig() (*feedConfig, error) {
@@ -85,7 +56,7 @@ func (f *FeedGenerator) writeConfig(config feedConfig) error {
 	return nil
 }
 
-func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
+func (c feedConfig) getURLS(provider providers.ItemProvider) []url.URL {
 	var urls []url.URL
 	for _, query := range c.Queries {
 		if query.Provider == provider.Name() {
@@ -100,7 +71,7 @@ func (c feedConfig) getURLS(provider ItemProvider) []url.URL {
 	return urls
 }
 
-func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
+func (f *FeedGenerator) GetQueries() ([]providers.FeedQuery, error) {
 	config, err := f.getConfig()
 	if err != nil {
 		return nil, err
@@ -114,7 +85,7 @@ func (f *FeedGenerator) GetQueries() ([]FeedQuery, error) {
 	return config.Queries, nil
 }
 
-func (f *FeedGenerator) DeleteQuery(id string) ([]FeedQuery, error) {
+func (f *FeedGenerator) DeleteQuery(id string) ([]providers.FeedQuery, error) {
 	config, err := f.getConfig()
 	if err != nil {
 		return nil, err
@@ -132,7 +103,7 @@ func (f *FeedGenerator) DeleteQuery(id string) ([]FeedQuery, error) {
 	return f.GetQueries()
 }
 
-func (f *FeedGenerator) AddQuery(query string) ([]FeedQuery, error) {
+func (f *FeedGenerator) AddQuery(query string) ([]providers.FeedQuery, error) {
 	config, err := f.getConfig()
 	if err != nil {
 		return nil, err
