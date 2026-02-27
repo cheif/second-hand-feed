@@ -128,8 +128,13 @@ func parseURL(node *html.Node, baseURL *url.URL) (string, error) {
 		return "", err
 	}
 
+	parsed, err := url.Parse(itemPath)
+	if err != nil {
+		return "", err
+	}
 	url := *baseURL
-	url.Path = path.Join(path.Dir(baseURL.Path), itemPath)
+	url.RawQuery = parsed.Query().Encode()
+	url.Path = path.Join(path.Dir(baseURL.Path), parsed.Path)
 	return url.String(), nil
 }
 

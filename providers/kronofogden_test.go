@@ -16,7 +16,12 @@ func TestFetchAndParse(t *testing.T) {
 	}
 
 	testURL, _ := url.Parse(server.URL)
-	testURL.Path = "/auk/w.objectlist?inC=KFM&inA=WEB&inSite=Y"
+	testURL.Path = "/auk/w.objectlist"
+	query := url.Values{}
+	query.Add("inC", "KFM")
+	query.Add("inA", "WEB")
+	query.Add("inSite", "Y")
+	testURL.RawQuery = query.Encode()
 
 	items, err := provider.GetItems([]url.URL{*testURL})
 	if err != nil {
@@ -27,7 +32,13 @@ func TestFetchAndParse(t *testing.T) {
 	}
 
 	itemURL := testURL
-	itemURL.Path = "/auk/w.object?inC=KFM&inA=20260218_1544&inO=1"
+	itemURL.Path = "/auk/w.object"
+	query = url.Values{}
+	query.Add("inC", "KFM")
+	query.Add("inA", "20260218_1544")
+	query.Add("inO", "1")
+	itemURL.RawQuery = query.Encode()
+
 	expected := Item{
 		URL:   itemURL.String(),
 		Title: "Grovdammsugare",
@@ -39,7 +50,7 @@ func TestFetchAndParse(t *testing.T) {
 		},
 	}
 	if items[0] != expected {
-		t.Errorf("Unexpected first item: %v, expected: %v", items[0], expected)
+		t.Errorf("Unexpected first \n    item: %v, \nexpected: %v", items[0], expected)
 	}
 }
 
