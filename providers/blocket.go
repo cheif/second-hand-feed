@@ -63,6 +63,10 @@ func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
 
 	var items []Item
 	for _, doc := range response.Docs {
+		// This filters away "recommended" items we get when there's no matches at all.
+		if doc.MainSearchKey != "SEARCH_ID_BAP_ALL" {
+			continue
+		}
 		items = append(items, Item{
 			URL:       doc.URL,
 			Title:     doc.Heading,
@@ -73,6 +77,9 @@ func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
 				CurrencyCode: doc.Price.CurrencyCode,
 			},
 		})
+	}
+	if len(items) != len(response.Docs) {
+		slog.Info("Filtered away items", "blocket-items", len(response.Docs), "feed-items", len(items))
 	}
 
 	return items, nil
@@ -102,6 +109,7 @@ func (b *BlocketProvider) fetch(query url.URL) (*blocketResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("Got items", "items", len(response.Docs))
 	return &response, nil
 }
 
@@ -111,11 +119,12 @@ type blocketResponse struct {
 }
 
 type blocketDoc struct {
-	URL       string          `json:"canonical_url"`
-	Heading   string          `json:"heading"`
-	Timestamp int             `json:"timestamp"`
-	Image     blocketDocImage `json:"image"`
-	Price     blocketDocPrice `json:"price"`
+	URL           string          `json:"canonical_url"`
+	Heading       string          `json:"heading"`
+	Timestamp     int             `json:"timestamp"`
+	MainSearchKey string          `json:"main_search_key"`
+	Image         blocketDocImage `json:"image"`
+	Price         blocketDocPrice `json:"price"`
 }
 
 type blocketDocImage struct {
