@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -53,8 +54,11 @@ func TestFetchAndParse(t *testing.T) {
 			Amount:       "1200",
 			CurrencyCode: "SEK",
 		},
+		Location: &ItemLocation{
+			Name: "Bultgatan 10, Sundsvall",
+		},
 	}
-	if items[0] != expected {
+	if !reflect.DeepEqual(items[0], expected) {
 		t.Errorf("Unexpected first \n    item: %v, \nexpected: %v", items[0], expected)
 	}
 }

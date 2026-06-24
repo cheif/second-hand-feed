@@ -115,6 +115,10 @@ func parseItemNode(node *html.Node, baseURL url.URL) (*Item, error) {
 			if err == nil {
 				item.Price = *price
 			}
+		} else if hasClass(child, "glyphicon-map-marker") {
+			item.Location = &ItemLocation{
+				Name: strings.TrimSpace(child.NextSibling.Data),
+			}
 		}
 	}
 	return &item, nil
