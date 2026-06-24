@@ -27,6 +27,9 @@ func (k *KronofogdenProvider) Name() string {
 }
 
 func (k *KronofogdenProvider) CanHandle(query url.URL) *FeedQuery {
+	if !strings.Contains(query.Host, "kronofogden") {
+		return nil
+	}
 	_, err := k.fetch(query)
 	if err != nil {
 		return nil
@@ -175,24 +178,6 @@ func parsePrice(node *html.Node) (*ItemPrice, error) {
 		}
 	}
 	return nil, fmt.Errorf("No title found in node: %v", node)
-}
-
-func getAttr(node *html.Node, key string) (string, error) {
-	for _, attr := range node.Attr {
-		if attr.Key == key {
-			return attr.Val, nil
-		}
-	}
-	return "", fmt.Errorf("Could not find attr: %v in node: %v", key, node)
-}
-
-func hasClass(node *html.Node, class string) bool {
-	for _, attr := range node.Attr {
-		if attr.Key == "class" && strings.Contains(attr.Val, class) {
-			return true
-		}
-	}
-	return false
 }
 
 type kronofogdenResponse struct {

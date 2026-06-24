@@ -27,7 +27,6 @@ func (b *BlocketProvider) Name() string {
 }
 
 func (b *BlocketProvider) CanHandle(query url.URL) *FeedQuery {
-	fmt.Println(query.Host)
 	if !strings.Contains(query.Host, "blocket") {
 		return nil
 	}
