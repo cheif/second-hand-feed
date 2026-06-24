@@ -13,11 +13,16 @@ type Item struct {
 	Timestamp time.Time
 	ImageURL  string
 	Price     ItemPrice
+	Location  *ItemLocation
 }
 
 type ItemPrice struct {
 	Amount       string
 	CurrencyCode string
+}
+
+type ItemLocation struct {
+	Name string
 }
 
 type ItemProvider interface {

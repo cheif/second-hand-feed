@@ -154,10 +154,7 @@ func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 						Href: item.URL,
 					},
 					Updated: item.Timestamp,
-					Summary: atomText{
-						Type:    "html",
-						Content: html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" />`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL)),
-					},
+					Summary: createSummary(item),
 				})
 			}
 		}
@@ -181,6 +178,20 @@ func (f *FeedGenerator) GetFeed(baseURL url.URL) ([]byte, error) {
 	}
 	slog.Info("Returning atom feed", "entries", len(entries))
 	return bytes, nil
+}
+
+func createSummary(item providers.Item) atomText {
+	var content string
+	if item.Location != nil {
+		content = html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" /><br />%v`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL, item.Location.Name))
+	} else {
+		content = html.EscapeString(fmt.Sprintf(`%v %v<br /><img src="%v" />`, item.Price.Amount, item.Price.CurrencyCode, item.ImageURL))
+
+	}
+	return atomText{
+		Type:    "html",
+		Content: content,
+	}
 }
 
 type atomFeed struct {
