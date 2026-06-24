@@ -1,17 +1,14 @@
 package providers
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 )
 
 func TestFetchAndParse(t *testing.T) {
-	server := createTestServer(t)
+	server := createTestServer(t, "testdata/kronofogden.html")
 	defer server.Close()
 	provider := KronofogdenProvider{
 		client: server.Client(),
@@ -64,7 +61,7 @@ func TestFetchAndParse(t *testing.T) {
 }
 
 func TestCanHandle(t *testing.T) {
-	server := createTestServer(t)
+	server := createTestServer(t, "testdata/kronofogden.html")
 	defer server.Close()
 	provider := KronofogdenProvider{
 		client: server.Client(),
@@ -83,14 +80,4 @@ func TestCanHandle(t *testing.T) {
 		t.Errorf("Unexpected handle \nresponse: %v, \nexpected: %v", *query, expected)
 	}
 
-}
-
-func createTestServer(t *testing.T) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		data, err := os.ReadFile("testdata/kronofogden.html")
-		if err != nil {
-			t.Error(err)
-		}
-		w.Write(data)
-	}))
 }

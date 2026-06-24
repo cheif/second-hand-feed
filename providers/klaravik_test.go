@@ -1,17 +1,14 @@
 package providers
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 )
 
 func TestKlaravikFetchAndParse(t *testing.T) {
-	server := createKlaravikTestServer(t)
+	server := createTestServer(t, "testdata/klaravik.html")
 	defer server.Close()
 	provider := KlaravikProvider{
 		client: server.Client(),
@@ -59,7 +56,7 @@ func TestKlaravikFetchAndParse(t *testing.T) {
 }
 
 func TestKlaravikCanHandle(t *testing.T) {
-	server := createTestServer(t)
+	server := createTestServer(t, "testdata/klaravik.html")
 	defer server.Close()
 	provider := KlaravikProvider{
 		client: server.Client(),
@@ -78,14 +75,4 @@ func TestKlaravikCanHandle(t *testing.T) {
 		t.Errorf("Unexpected handle \nresponse: %v, \nexpected: %v", *query, expected)
 	}
 
-}
-
-func createKlaravikTestServer(t *testing.T) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		data, err := os.ReadFile("testdata/klaravik.html")
-		if err != nil {
-			t.Error(err)
-		}
-		w.Write(data)
-	}))
 }
