@@ -118,6 +118,10 @@ func parseListingNode(node *html.Node, baseURL url.URL) (*Item, error) {
 			if err == nil {
 				item.Price = *price
 			}
+		} else if hasClass(child, "product_card__info-text") {
+			item.Location = &ItemLocation{
+				Name: child.FirstChild.Data,
+			}
 		}
 	}
 	return &item, nil

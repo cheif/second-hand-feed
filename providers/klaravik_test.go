@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -48,8 +49,11 @@ func TestKlaravikFetchAndParse(t *testing.T) {
 			Amount:       "1500",
 			CurrencyCode: "SEK",
 		},
+		Location: &ItemLocation{
+			Name: "Timrå",
+		},
 	}
-	if items[0] != expected {
+	if !reflect.DeepEqual(items[0], expected) {
 		t.Errorf("Unexpected first \n    item: %v, \nexpected: %v", items[0], expected)
 	}
 }
