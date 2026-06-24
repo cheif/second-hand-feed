@@ -12,14 +12,18 @@ import (
 	"time"
 )
 
-type VintedProvider struct{}
+type VintedProvider struct {
+	client *http.Client
+}
 
 func (f *VintedProvider) Name() string {
 	return "vinted"
 }
 
 func NewVintedProvider() *VintedProvider {
-	return &VintedProvider{}
+	return &VintedProvider{
+		client: http.DefaultClient,
+	}
 }
 
 func (f *VintedProvider) CanHandle(query url.URL) *FeedQuery {
@@ -40,7 +44,7 @@ func (f *VintedProvider) GetItems(urls []url.URL) ([]Item, error) {
 	if len(urls) == 0 {
 		return nil, nil
 	}
-	client, err := createAuthenticatedClient(&urls[0])
+	client, err := createAuthenticatedClient(*f.client, &urls[0])
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +120,7 @@ type vintedItemPrice struct {
 	CurrencyCode string `json:"currency_code"`
 }
 
-func createAuthenticatedClient(query *url.URL) (*http.Client, error) {
-	client := http.Client{}
+func createAuthenticatedClient(client http.Client, query *url.URL) (*http.Client, error) {
 	jar, _ := cookiejar.New(nil)
 	client.Jar = jar
 
