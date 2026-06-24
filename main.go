@@ -18,6 +18,7 @@ func main() {
 			providers.NewVintedProvider(),
 			providers.NewBlocketProvider(),
 			providers.NewKronofogdenProvider(),
+			providers.NewKlaravikProvider(),
 		},
 	)
 
