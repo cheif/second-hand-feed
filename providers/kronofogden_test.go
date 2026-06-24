@@ -66,8 +66,7 @@ func TestCanHandle(t *testing.T) {
 		client: server.Client(),
 	}
 
-	testURL, _ := url.Parse(server.URL)
-	testURL.Path = "/auk/w.objectlist?inC=KFM&inA=WEB&inSite=Y"
+	testURL, _ := url.Parse("https://auktion.kronofogden.se/auk/w.objectlist?inC=KFM&inA=WEB&inSite=Y")
 
 	query := provider.CanHandle(*testURL)
 

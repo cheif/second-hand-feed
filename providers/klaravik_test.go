@@ -61,8 +61,7 @@ func TestKlaravikCanHandle(t *testing.T) {
 		client: server.Client(),
 	}
 
-	testURL, _ := url.Parse(server.URL)
-	testURL.Path = "/auktion/?searchtext=Husqvarna&setcountyflag%5B%5D=265"
+	testURL, _ := url.Parse("https://www.klaravik.se/auktion/?searchtext=Husqvarna&setcountyflag%5B%5D=265")
 
 	query := provider.CanHandle(*testURL)
 
