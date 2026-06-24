@@ -13,12 +13,12 @@ import (
 )
 
 type BlocketProvider struct {
-	client http.Client
+	client *http.Client
 }
 
 func NewBlocketProvider() *BlocketProvider {
 	return &BlocketProvider{
-		client: http.Client{},
+		client: http.DefaultClient,
 	}
 }
 
@@ -75,6 +75,9 @@ func (b *BlocketProvider) getItems(query url.URL) ([]Item, error) {
 				Amount:       strconv.Itoa(doc.Price.Amount),
 				CurrencyCode: doc.Price.CurrencyCode,
 			},
+			Location: &ItemLocation{
+				Name: doc.Location,
+			},
 		})
 	}
 	if len(items) != len(response.Docs) {
@@ -120,6 +123,7 @@ type blocketResponse struct {
 type blocketDoc struct {
 	URL           string          `json:"canonical_url"`
 	Heading       string          `json:"heading"`
+	Location      string          `json:"location"`
 	Timestamp     int             `json:"timestamp"`
 	MainSearchKey string          `json:"main_search_key"`
 	Image         blocketDocImage `json:"image"`

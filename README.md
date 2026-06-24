@@ -19,3 +19,7 @@ Now you should point your feed-reader towards the same url (you might have to ap
 ### Credits
 
 This is heavily inspired by [Vinted-Notifications](https://github.com/Fuyucch1/Vinted-Notifications/tree/main), which does a similar thing, but with more bells and whistles, and only supports Vinted.
+
+## TODO
+
+- [ ] Some `CanHandle` tests currently hit the backend, no bueno.
